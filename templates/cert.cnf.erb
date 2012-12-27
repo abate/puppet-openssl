@@ -8,7 +8,7 @@ RANDFILE                = $ENV::HOME/.rnd
 [ req ]
 default_bits            = 2048
 default_md              = sha1
-default_keyfile         = privkey.pem
+default_keyfile         = key.pem
 distinguished_name      = req_distinguished_name
 prompt                  = no
 <% if altnames and not altnames.empty? -%>
@@ -37,3 +37,7 @@ emailAddress                    = <%= email %>
 subjectAltName = "<%= altnames.collect! {|i| "DNS: #{i}" }.join(', ') -%>"
 <% end %>
 
+[ v3_ca ] 
+basicConstraints = CA:TRUE 
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer:always
