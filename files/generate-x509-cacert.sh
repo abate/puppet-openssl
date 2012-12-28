@@ -15,7 +15,7 @@ password=$5
 export RANDFILE=/dev/random
 
 if [ ! -e $outputdir/serial ]; then
-  echo 1000 > $outputdir/serial
+  echo 01 > $outputdir/serial
 fi
 
 touch $outputdir/index.txt
@@ -28,3 +28,4 @@ if [ ! -e $outputdir/$hostname.cert ] || [ ! -e $outputdir/private/$hostname.key
   chmod 600 $outputdir/private/$hostname.key
 fi
 
+exit 0

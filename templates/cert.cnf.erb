@@ -5,11 +5,37 @@
 
 RANDFILE                = $ENV::HOME/.rnd
 
+[ ca ] 
+default_ca = CA_default 
+
+[ CA_default ] 
+serial = <%= ca_dir %>/serial 
+database = <%= ca_dir %>/index.txt 
+new_certs_dir = <%= ca_dir %>/newcerts
+certificate = <%= ca_dir %>/<%= ca %>.cert
+private_key = <%= ca_dir %>/private/<%= ca %>.key
+default_days = 365
+default_md = sha1
+preserve = no
+email_in_dn = no 
+nameopt = default_ca 
+certopt = default_ca 
+policy = policy_match 
+
+[ policy_match ] 
+countryName = match 
+stateOrProvinceName = match 
+organizationName = match 
+organizationalUnitName = optional 
+commonName = supplied 
+emailAddress = optional 
+
 [ req ]
 default_bits            = 2048
 default_md              = sha1
 default_keyfile         = key.pem
 distinguished_name      = req_distinguished_name
+req_extensions = v3_req 
 prompt                  = no
 <% if altnames and not altnames.empty? -%>
 req_extensions          = req_ext
@@ -35,9 +61,13 @@ emailAddress                    = <%= email %>
 <% if altnames and not altnames.empty? -%>
 [ req_ext ]
 subjectAltName = "<%= altnames.collect! {|i| "DNS: #{i}" }.join(', ') -%>"
-<% end %>
+<% end -%>
 
 [ v3_ca ] 
 basicConstraints = CA:TRUE 
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer:always
+
+[ v3_req ] 
+basicConstraints = CA:FALSE 
+subjectKeyIdentifier = hash 

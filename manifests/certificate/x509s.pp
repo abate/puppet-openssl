@@ -1,11 +1,12 @@
 /*
 
-== Definition: openssl::certificate::x509
+== Definition: openssl::certificate::x509s
 
 Creates a certificate, key and CSR according to datas provided.
+This certificate is signed by the provided CA.
 
 Requires:
-- Class["openssl::genx509"]
+- Class["openssl::genx509s"]
 
 Parameters:
 - *$ensure*:       ensure wether certif and its config are present or not
@@ -18,31 +19,32 @@ Parameters:
 - *$unit*:         certificate organizationalUnitName
 - *$email*:        certificate emailAddress
 - *$days*:         certificate validity
-- *$password*:     certificate password file. File must exist
-- *$base_dir*:     where .cnf file should be placed. Directory must exist
-- *$ca_dir*:       where ca private and public key should be placed. Directory must exist
+- *$base_dir*:     where cnf, crt, csr and key should be placed. Directory must exist
+- *$cadir*:
+- *$ca*:
 
 Example:
 node "foo.bar" {
-  include openssl::genx509
-  openssl::certificate::ca {"foo.bar":
+  include openssl::genx509s
+  openssl::certificate::x509s {"foo.bar":
     ensure       => present,
     country      => "CH",
     organisation => "Example.com",
     commonname   => $fqdn,
-    base_dir     => "/etc/ssl",
+    base_dir     => "/var/www/ssl",
+    ca           => "bazCA",
     ca_dir       => "/etc/sslCA",
     password     => "/root/.capwd",
   }
 }
 
-This will create files "foo.bar.cnf" in /etc/ssl and 
- "foo.bar.cert" and "private/foo.bar.key" in /etc/sslCA.
+This will create files "foo.bar.cnf", "foo.bar.crt", "foo.bar.key" and "foo.bar.csr" in /var/www/ssl/.
+All files will belong to user "www-data".
 
-All files will belong to user "root".
+Those files can be used as is for apache, openldap and so on.
 
 */
-define openssl::certificate::ca($ensure=present,
+define openssl::certificate::x509s($ensure=present,
   $country,
   $state=false,
   $locality=false,
@@ -52,25 +54,15 @@ define openssl::certificate::ca($ensure=present,
   $altnames=false,
   $email=false,
   $days=365,
+  $base_dir='/etc/ssl/localcerts',
+  $ca="ca",
+  $ca_dir="/etc/sslCA",
   $password,
-  $base_dir='/etc/ssl',
-  $ca_dir='/etc/sslCA',
-  $ca=$name,
   ) {
 
-  file { "${ca_dir}":
-    ensure => directory,
-    owner  => root,
-  }
-
-  file { "${ca_dir}/private":
-    ensure => directory,
-    owner  => root,
-  }
-
-  file { "${ca_dir}/newcerts":
-    ensure => directory,
-    owner  => root,
+  file {"${base_dir}":
+    ensure  => directory,
+    owner   => root,
   }
 
   file {"${base_dir}/${name}.cnf":
@@ -86,19 +78,19 @@ define openssl::certificate::ca($ensure=present,
       }
 
       exec {"create ${name} certificate":
-        creates => ["${ca_dir}/${name}.cert","${ca_dir}/private/${name}.key"],
+        creates => ["${base_dir}/${name}.req", "${base_dir}/${name}.key", "${base_dir}/${name}.cert"],
         user    => root,
-        command => "/usr/local/sbin/generate-x509-cacert.sh ${name} ${base_dir}/${name}.cnf ${ca_dir}/ ${days} $password",
-        require => [File["${base_dir}/${name}.cnf"], Class['openssl::genca']],
+        command => "/usr/local/sbin/generate-x509s-cert.sh ${name} ${base_dir}/${name}.cnf ${base_dir}/ ${days} $password",
+        require => [File["${base_dir}/${name}.cnf"], Class['openssl::genx509s']],
       }
     }
 
     'absent':{
       file {[
-        "${ca_dir}/${name}.cert",
-        "${ca_dir}/private/${name}.key",
-        "${ca_dir}/private",
-        "${ca_dir}",
+        "${base_dir}/${name}.req",
+        "${base_dir}/${name}.csr",
+        "${base_dir}/${name}.cert",
+        "${base_dir}/${name}.key",
         ]:
         ensure => absent,
       }
